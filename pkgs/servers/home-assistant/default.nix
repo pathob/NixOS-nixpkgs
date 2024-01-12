@@ -63,6 +63,21 @@ let
         ];
       });
 
+      aiopurpleair = super.aiopurpleair.overridePythonAttrs (oldAttrs: rec {
+        version = "2022.12.1";
+        src = fetchFromGitHub {
+          owner = "bachya";
+          repo = "aiopurpleair";
+          rev = "refs/tags/${version}";
+          hash = "sha256-YmJH4brWkTpgzyHwu9UnIWrY5qlDCmMtvF+KxQFXwfk=";
+        };
+        postPatch = ''
+          substituteInPlace pyproject.toml --replace \
+            '"setuptools >= 35.0.2", "wheel >= 0.29.0", "poetry>=0.12"' \
+            '"poetry-core"'
+        '';
+      });
+
       aiopvapi = super.aiopvapi.overridePythonAttrs (oldAttrs: rec {
         version = "2.0.4";
         src = fetchFromGitHub {
@@ -180,16 +195,6 @@ let
           repo = "justnimbus";
           rev = "refs/tags/${version}";
           hash = "sha256-uQ5Nc5sxqHeAuavyfX4Q6Umsd54aileJjFwOOU6X7Yg=";
-        };
-      });
-
-      mcstatus = super.mcstatus.overridePythonAttrs (oldAttrs: rec {
-        version = "11.0.0";
-        src = fetchFromGitHub {
-          owner = "py-mine";
-          repo = "mcstatus";
-          rev = "refs/tags/v${version}";
-          hash = "sha256-1jPIsFEJ17kjtCBiX4IvSf2FxYw9DkH3MrrJ85N71tc=";
         };
       });
 
