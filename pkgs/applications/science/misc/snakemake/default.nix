@@ -14,6 +14,10 @@ python3.pkgs.buildPythonApplication rec {
     repo = pname;
     rev = "refs/tags/v${version}";
     hash = "sha256-b7WUy9fFSzeJea3NcK0GNP6ui9jY8iuT72yFmfQAFRM=";
+    # https://github.com/python-versioneer/python-versioneer/issues/217
+    postFetch = ''
+      sed -i "$out"/snakemake/_version.py -e 's#git_refnames = ".*"#git_refnames = " (tag: v${version})"#'
+    '';
   };
 
   postPatch = ''
