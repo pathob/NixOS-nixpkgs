@@ -16,6 +16,7 @@ python3Packages.buildPythonApplication rec {
 
   propagatedBuildInputs = with python3Packages; [
     appdirs
+    chump
     cssselect
     jq
     keyring
