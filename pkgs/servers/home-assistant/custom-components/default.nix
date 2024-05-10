@@ -42,6 +42,8 @@
 
   smartthinq-sensors = callPackage ./smartthinq-sensors {};
 
+  tuya_ble = callPackage ./tuya_ble {};
+
   tuya_local = callPackage ./tuya_local {};
 
   waste_collection_schedule = callPackage ./waste_collection_schedule {};
