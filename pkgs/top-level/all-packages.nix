@@ -3948,6 +3948,8 @@ with pkgs;
     buildGoModule = buildGo123Module;
   };
 
+  atlassian-plugin-sdk = callPackage ../by-name/at/atlassian-plugin-sdk/package.nix { };
+
   authoscope = callPackage ../tools/security/authoscope {
     inherit (darwin.apple_sdk.frameworks) Security;
   };
@@ -10904,6 +10906,8 @@ with pkgs;
 
   opentelemetry-collector = callPackage ../tools/misc/opentelemetry-collector { };
   opentelemetry-collector-contrib = callPackage ../tools/misc/opentelemetry-collector/contrib.nix { };
+
+  omada-sdn-controller = callPackage ../by-name/om/omada-sdn-controller/package.nix { };
 
   openvswitch-dpdk = callPackage ../by-name/op/openvswitch/package.nix { withDPDK = true; };
 
