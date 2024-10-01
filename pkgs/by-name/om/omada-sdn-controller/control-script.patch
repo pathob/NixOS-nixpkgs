@@ -1,0 +1,18 @@
+diff -uNr Omada_SDN_Controller_v5.15.8.2_linux_x64/Omada_SDN_Controller_v5.15.8.2_linux_x64/bin/control.sh Omada_SDN_Controller_v5.15.8.2_linux_x64/Omada_SDN_Controller_v5.15.8.2_linux_x64/bin/control.sh
+--- Omada_SDN_Controller_v5.15.8.2_linux_x64/Omada_SDN_Controller_v5.15.8.2_linux_x64/bin/control.sh
++++ Omada_SDN_Controller_v5.15.8.2_linux_x64/Omada_SDN_Controller_v5.15.8.2_linux_x64/bin/control.sh
+@@ -81,8 +81,12 @@ check_version() {
+     echo "Omada Controller v5.15.8.2 for Linux (X64)"
+ }
+
+-# root permission check
+-check_root_perms
++# don't run root permission check because we make Omada working on user-writable directories
++# check_root_perms
++
++# copy default config files if they don't exist yet
++cp -rn ${OMADA_HOME}/defaults/data ${OMADA_HOME}/data
++cp -rn ${OMADA_HOME}/defaults/properties ${OMADA_HOME}/properties
+
+ # JSVC - for running java apps as services
+ JSVC=$(command -v jsvc)
