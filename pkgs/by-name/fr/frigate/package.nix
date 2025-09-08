@@ -3,6 +3,7 @@
   stdenv,
   callPackage,
   python312,
+  python3Packages,
   fetchFromGitHub,
   fetchurl,
   rocmPackages,
@@ -46,10 +47,67 @@ let
     hash = "sha256-Siviu7YU5XbVbcuRT6UnUr8PE0EVEnENNV2X+qGzVkE=";
   };
 
-  # TODO: OpenVino model
-  # https://github.com/blakeblackshear/frigate/blob/v0.15.0/docker/main/Dockerfile#L64-L77
-  # https://github.com/blakeblackshear/frigate/blob/v0.15.0/docker/main/Dockerfile#L120-L123
-  # Convert https://www.kaggle.com/models/tensorflow/ssdlite-mobilenet-v2 with https://github.com/blakeblackshear/frigate/blob/v0.15.0/docker/main/build_ov_model.py into OpenVino IR format
+  # SSDLite MobileNetV2 model from TensorFlow
+  ssdlite_mobilenet_v2_tensorflow = fetchurl {
+    url = "http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz";
+    hash = "sha256-VCRFzOg02/u33xmRQl1HXoWi1+xoxgpPJiuxiqwQyLI=";
+  };
+
+  # Convert SSDLite MobileNetV2 model from TensorFlow using modern OpenVINO API
+  openvino_model = stdenv.mkDerivation {
+    pname = "frigate-openvino-model";
+    inherit version;
+
+    src = ssdlite_mobilenet_v2_tensorflow;
+
+    nativeBuildInputs = [
+      python3Packages.python
+      python3Packages.openvino
+    ];
+
+    buildPhase = ''
+      # Extract TensorFlow model
+      mkdir -p models
+      cd models
+      tar -xzf $src
+      cd ..
+
+      # Create conversion script using modern OpenVINO API
+      cat > convert_model.py << 'EOF'
+      import openvino as ov
+
+      model_path = "./models/ssdlite_mobilenet_v2_coco_2018_05_09/frozen_inference_graph.pb"
+
+      # Convert TensorFlow model to OpenVINO format
+      # input_model: path to the TensorFlow frozen graph (.pb file)
+      # input: input tensor shape [batch_size, height, width, channels] in NHWC format
+      # output: list of output node names to retain in the converted model
+      ov_model = ov.convert_model(
+        input_model=model_path,
+        input=[1, 300, 300, 3],
+        output=["detection_boxes:0"]
+      )
+
+      # Save the converted model
+      # compress_to_fp16: compress model weights to FP16 precision for optimized performance
+      ov.save_model(ov_model, "./models/ssdlite_mobilenet_v2.xml", compress_to_fp16=True)
+      EOF
+
+      # Run the conversion
+      python3 convert_model.py
+    '';
+
+    installPhase = ''
+      mkdir -p $out
+      cp models/ssdlite_mobilenet_v2.xml $out/
+      cp models/ssdlite_mobilenet_v2.bin $out/
+    '';
+
+    meta = {
+      description = "OpenVINO model files for Frigate object detection (single-output SSD model)";
+    };
+  };
+
   coco_91cl_bkgr = fetchurl {
     url = "https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt";
     hash = "sha256-5Cj2vEiWR8Z9d2xBmVoLZuNRv4UOuxHSGZQWTJorXUQ=";
@@ -174,6 +232,9 @@ python.pkgs.buildPythonApplication rec {
 
     cp --no-preserve=mode ${coco_91cl_bkgr} $out/share/frigate/coco_91cl_bkgr.txt
     sed -i 's/truck/car/g' $out/share/frigate/coco_91cl_bkgr.txt
+
+    cp --no-preserve=mode ${openvino_model}/ssdlite_mobilenet_v2.xml $out/share/frigate/
+    cp --no-preserve=mode ${openvino_model}/ssdlite_mobilenet_v2.bin $out/share/frigate/
 
     runHook postInstall
   '';
