@@ -7,30 +7,27 @@
   libuuid,
 }:
 
-let
-  inherit (stdenv.hostPlatform) system;
-
-  supported = {
-    x86_64-linux = {
-      arch = "linux-x64";
-      hash = "sha256-dZwOBehoYEqaYskvcPB55IKnG1CMToioyUJXlndqorA=";
-    };
-    aarch64-linux = {
-      arch = "linux-arm64";
-      hash = "sha256-Dj+E1hPLaO2SCBvYqn3zfyJnNz30/V0xR2T8q8VNkXE=";
-    };
-  };
-
-  base = supported.${system} or (throw "Unsupported system: ${system}");
-
-  releaseDir = "share/vscode/extensions/ms-vscode.vscode-speech/node_modules/@vscode/node-speech/build/Release";
-in
 vscode-utils.buildVscodeMarketplaceExtension {
-  mktplcRef = base // {
-    name = "vscode-speech";
-    publisher = "ms-vscode";
-    version = "0.16.0";
-  };
+  mktplcRef =
+    let
+      sources = {
+        "x86_64-linux" = {
+          arch = "linux-x64";
+          hash = "sha256-dZwOBehoYEqaYskvcPB55IKnG1CMToioyUJXlndqorA=";
+        };
+        "aarch64-linux" = {
+          arch = "linux-arm64";
+          hash = "sha256-Dj+E1hPLaO2SCBvYqn3zfyJnNz30/V0xR2T8q8VNkXE=";
+        };
+      };
+    in
+    {
+      name = "vscode-speech";
+      publisher = "ms-vscode";
+      version = "0.16.0";
+    }
+    // sources.${stdenv.hostPlatform.system}
+      or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
   nativeBuildInputs = [
     autoPatchelfHook
@@ -50,7 +47,7 @@ vscode-utils.buildVscodeMarketplaceExtension {
   # autoPatchelfHook patches direct dependencies but can't detect dlopen calls,
   # so we add the Release directory to RPATH.
   appendRunpaths = [
-    "${placeholder "out"}/${releaseDir}"
+    "${placeholder "out"}/share/vscode/extensions/ms-vscode.vscode-speech/node_modules/@vscode/node-speech/build/Release"
   ];
 
   meta = {
@@ -58,10 +55,10 @@ vscode-utils.buildVscodeMarketplaceExtension {
     downloadPage = "https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-speech";
     homepage = "https://github.com/microsoft/vscode-speech";
     license = lib.licenses.unfree;
-    maintainers = [ ];
     platforms = [
       "x86_64-linux"
       "aarch64-linux"
     ];
+    maintainers = [ ];
   };
 }
