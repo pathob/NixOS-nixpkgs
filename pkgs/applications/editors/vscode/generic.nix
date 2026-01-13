@@ -320,8 +320,9 @@ stdenv.mkDerivation (
       gappsWrapperArgs+=(
           ${
             # we cannot use runtimeDependencies otherwise libdbusmenu do not work on kde
+            # alsa-lib is needed for extensions that dlopen audio libraries at runtime (e.g. ms-vscode.vscode-speech)
             lib.optionalString stdenv.hostPlatform.isLinux
-              "--prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ libdbusmenu ]}"
+              "--prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ libdbusmenu alsa-lib ]}"
           }
         --prefix PATH : ${
           lib.makeBinPath [
