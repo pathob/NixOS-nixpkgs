@@ -26,12 +26,14 @@ let
     supported.${system}
       or (throw "Unsupported system: ${system}");
 
+  version = "0.16.0";
+
   # First stage: build with autoPatchelfHook
   unpacked = vscode-utils.buildVscodeMarketplaceExtension {
     mktplcRef = base // {
       name = "vscode-speech";
       publisher = "ms-vscode";
-      version = "0.16.0";
+      inherit version;
     };
 
     nativeBuildInputs = [
@@ -43,18 +45,6 @@ let
       alsa-lib
       libuuid
     ];
-
-    meta = {
-      description = "Enables speech-to-text and text-to-speech capabilities in VS Code";
-      downloadPage = "https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-speech";
-      homepage = "https://github.com/microsoft/vscode-speech";
-      license = lib.licenses.unfree;
-      maintainers = [ ];
-      platforms = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
-    };
   };
 
   # Second stage: fix dlopen RPATH for audio.sys.so
@@ -66,9 +56,13 @@ let
 in
 stdenv.mkDerivation {
   pname = "vscode-extension-ms-vscode-vscode-speech";
-  version = "0.16.0";
+  inherit version;
 
   dontUnpack = true;
+
+  # Prevent fixup phase from shrinking RPATHs - we need the Release directory
+  # in the RPATH for dlopen to find audio.sys.so at runtime
+  dontPatchELF = true;
 
   nativeBuildInputs = [ patchelf ];
 
@@ -84,22 +78,32 @@ stdenv.mkDerivation {
     releaseDir="$out/share/vscode/extensions/ms-vscode.vscode-speech/node_modules/@vscode/node-speech/build/Release"
 
     # Update all native libraries to use the new store path instead of the old one
-    for lib in "$releaseDir"/*.so "$releaseDir"/*.node; do
-      if [ -f "$lib" ]; then
-        oldRpath=$(patchelf --print-rpath "$lib" 2>/dev/null || true)
+    for file in "$releaseDir"/*.so "$releaseDir"/*.node; do
+      if [ -f "$file" ]; then
+        oldRpath=$(patchelf --print-rpath "$file" 2>/dev/null || true)
         if [ -n "$oldRpath" ]; then
           # Replace old store path with new one in RPATH
           newRpath=$(echo "$oldRpath" | sed "s|${unpacked}|$out|g")
-          patchelf --set-rpath "$newRpath" "$lib"
+          patchelf --set-rpath "$newRpath" "$file"
         fi
       fi
     done
 
-    # Also add the Release directory to core.so's RPATH for dlopen of audio.sys.so
+    # Add the Release directory to core.so's RPATH for dlopen of audio.sys.so
     patchelf --add-rpath "$releaseDir" "$releaseDir/libMicrosoft.CognitiveServices.Speech.core.so"
 
     runHook postInstall
   '';
 
-  inherit (unpacked) meta;
+  meta = {
+    description = "Enables speech-to-text and text-to-speech capabilities in VS Code";
+    downloadPage = "https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-speech";
+    homepage = "https://github.com/microsoft/vscode-speech";
+    license = lib.licenses.unfree;
+    maintainers = [ ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  };
 }
