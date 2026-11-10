@@ -2,6 +2,7 @@
   lib,
   gitUpdater,
   fetchFromGitHub,
+  gtk3,
   qt6Packages,
   stdenv,
   cmake,
@@ -20,6 +21,7 @@
   sqlite,
   xdg-utils,
   libsysprof-capture,
+  wrapGAppsHook3,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -62,9 +64,11 @@ stdenv.mkDerivation (finalAttrs: {
     librsvg
     sphinx
     qt6Packages.wrapQtAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
+    gtk3
     inotify-tools
     kdePackages.kio
     kdsingleapplication
@@ -96,6 +100,15 @@ stdenv.mkDerivation (finalAttrs: {
     ":"
     "${lib.makeBinPath [ xdg-utils ]}"
   ];
+
+  # Qt's GTK3 platform theme opens the GTK file chooser, which aborts without
+  # the org.gtk.Settings.FileChooser schema. Fold the GApps environment into
+  # the Qt wrapper instead of wrapping twice.
+  dontWrapGApps = true;
+
+  preFixup = ''
+    qtWrapperArgs+=("''${gappsWrapperArgs[@]}")
+  '';
 
   cmakeFlags = [
     "-DBUILD_UPDATER=off"
